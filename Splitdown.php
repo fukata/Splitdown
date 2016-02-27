@@ -84,7 +84,12 @@ class Splitdown {
 		if( !in_array( $post->post_type, get_option( 'splitdown_posttypes', array() ) ) )
 			return;
 
-		$meta = get_post_meta( $post->ID, '_splitdown_markdown', TRUE );
+        $dont_convert_html = get_option( 'splitdown_dont_convert_html', '0' );
+        if ($dont_convert_html == '1') {
+            $meta = $post->post_content; 
+        } else {
+            $meta = get_post_meta( $post->ID, '_splitdown_markdown', TRUE );
+        }
 
 		$content = static::_load_template( 'editor.html', array( 'markdown' => $meta, 'html' => $post->post_content ) );
 
@@ -95,12 +100,17 @@ class Splitdown {
 
 	public static function save( $post_id ){
 
-		if ($_POST && isset($_POST["splitdown-markdown"])) {
-			$html = $_POST[ 'splitdown-markdown' ];
-		} else {
-			$html = "";
-		}
-
+        $dont_convert_html = get_option( 'splitdown_dont_convert_html', '0' );
+        if ($dont_convert_html == '1') {
+            $html = $_POST[ 'content' ];
+        } else {
+            if ($_POST && isset($_POST["splitdown-markdown"])) {
+                $html = $_POST[ 'splitdown-markdown' ];
+            } else {
+                $html = "";
+            }
+        }
+		
 		if ($_POST && isset($_POST["content"])) {
 			$markdown	= $_POST[ 'content' ];
 		} else {
@@ -144,8 +154,17 @@ class Splitdown {
 			'splitdown_settings'
 		);
 
+		add_settings_field(
+			'splitdown_setting_dont_convert_html',
+			"Don't convert HTML<br/>Don't convert HTML when save.",
+			array( __CLASS__, 'options_field_dont_convert_html' ),
+			'writing',
+			'splitdown_settings'
+		);
+
 		register_setting( 'writing', 'splitdown_posttypes' );
 		register_setting( 'writing', 'splitdown_extensions' );
+		register_setting( 'writing', 'splitdown_dont_convert_html' );
 	}
 
 
@@ -213,6 +232,15 @@ class Splitdown {
 		}
 
 		echo static::_load_template( 'option-showdown-extension.html', array( 'options' => $out ) );
+	}
+
+	public static function options_field_dont_convert_html(){
+		$current = get_option( 'splitdown_dont_convert_html', '0' );
+
+        $vals = array(
+            "checked" => $current == '1' ? 'checked="checked"' : "", 
+        );
+        echo static::_load_template( 'option-dont-convert-html.html', $vals );
 	}
 
 
